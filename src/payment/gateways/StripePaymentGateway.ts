@@ -3,35 +3,50 @@ import { PaymentGateway } from '../interfaces/PaymentGateway';
 import Stripe from 'stripe';
 
 export class StripePaymentGateway implements PaymentGateway {
-  private stripe: Stripe;
-  private customer: any;
+  private stripe;
+  private price: any;
 
   constructor(apiKey: string) {
     // this.stripe = new Stripe(apiKey, { apiVersion: '2022-11-15' });
     this.stripe = new Stripe(apiKey);
+    console.log('Stripe object created ======== ');
   }
 
-  async initialize(params: object): Promise<void> {
-    // this.customer = await this.stripe.customers.create(params);
+  async initialize(params: any): Promise<void> {
     console.log('Stripe payment gateway initialized======== ');
+    if(params?.productName){
+      const product = await this.stripe.products.create({
+        name: params?.productName, //Product or Service Name
+        description: params?.description
+      });
+
+      this.price = await this.stripe.prices.create({
+        product: product.id,
+        unit_amount: params.unitAmount * 100,
+        currency: 'usd',
+      });
+    }
+    
   }
 
   async processPayment(data: object): Promise<any> {
     try {
-      // return this.customer;
-      // const charge = await this.stripe.charges.create({
-      //   amount: amount * 100, // Convert to smallest currency unit (e.g., cents)
-      //   currency,
-      // });
-      // console.log('Payment processed successfully:---------');
-      // return charge
-      // return true;
-      const paymentIntent = await this.stripe.paymentIntents.create({
-        amount: data.amount * 100, // Amount in smallest currency unit (e.g., cents for USD)
-        currency: data.currency,
-        payment_method_types: ['card'], // Specify payment methods
+      const BASE_URL = process.env.FRONTEND_URL;
+      
+      const session = await this.stripe.checkout.sessions.create({
+        line_items: [
+          {
+            // Provide the exact Price ID (for example, pr_1234) of the product you want to sell
+            price:  this.price.id,
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${BASE_URL}/success.html`,
+        cancel_url: `${BASE_URL}/cancel.html`,
       });
-      return paymentIntent.client_secret
+  
+      return session.url
     } catch (error) {
       console.error('Error processing payment:', error);
       return false;

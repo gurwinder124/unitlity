@@ -2,6 +2,9 @@ import express, { Request, Response } from 'express';
 import router_v1 from './payment/routes';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import 'dotenv/config'
+
+
 
 const app = express();
 const PORT = process.env.PORT || 8000;
